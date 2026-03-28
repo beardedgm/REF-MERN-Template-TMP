@@ -162,10 +162,12 @@ Schemas live in `shared/schemas/` and are used by both sides:
 ## Deployment
 
 - **Hosting:** Render.com (frontend and backend deployed as separate services)
+- **Blueprint:** `render.yaml` defines both services — Render reads this on connect
 - **API start command:** `npm start`
 - **Client build command:** `cd client && npm run build` (serve `client/dist/`)
 - **Environment variables:** Set in Render dashboard (see `.env.example` for full list)
 - `trust proxy` is already configured for Render's load balancer
+- Static site has SPA rewrite rule (`/* → /index.html`) for client-side routing
 
 ## Conventions
 
