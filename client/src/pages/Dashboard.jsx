@@ -5,9 +5,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1>Dashboard</h1>
-      <p>Welcome, {user?.email}</p>
-      <p>Plan: {user?.plan}</p>
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <p className="text-gray-600">Welcome, {user?.email}</p>
+      <p className="text-gray-500 text-sm">Plan: {user?.plan}</p>
     </div>
   );
 }

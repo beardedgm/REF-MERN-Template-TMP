@@ -35,46 +35,53 @@ export default function Register() {
   }
 
   return (
-    <div>
-      <h1>Register</h1>
-      <form onSubmit={handleSubmit}>
+    <div className="max-w-sm mx-auto py-12">
+      <h1 className="text-2xl font-bold mb-6">Register</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
           <input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
           />
-          {errors.email && <p>{errors.email[0]}</p>}
+          {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email[0]}</p>}
         </div>
         <div>
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
           <input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
           />
-          {errors.password && <p>{errors.password[0]}</p>}
+          {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password[0]}</p>}
         </div>
         <div>
-          <label htmlFor="confirmPassword">Confirm Password</label>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirm Password</label>
           <input
             id="confirmPassword"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
           />
-          {errors.confirmPassword && <p>{errors.confirmPassword[0]}</p>}
+          {errors.confirmPassword && <p className="text-red-600 text-sm mt-1">{errors.confirmPassword[0]}</p>}
         </div>
-        {errors.form && <p>{errors.form[0]}</p>}
-        <button type="submit" disabled={register.isPending}>
+        {errors.form && <p className="text-red-600 text-sm">{errors.form[0]}</p>}
+        <button
+          type="submit"
+          disabled={register.isPending}
+          className="w-full bg-gray-900 text-white py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+        >
           {register.isPending ? 'Creating account...' : 'Register'}
         </button>
       </form>
-      <p>
-        Already have an account? <Link to="/login">Login</Link>
+      <p className="text-sm text-gray-600 mt-4">
+        Already have an account? <Link to="/login" className="underline">Login</Link>
       </p>
     </div>
   );

@@ -5,7 +5,7 @@ export default function ProtectedRoute() {
   const { data: user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="text-center py-20 text-gray-500">Loading...</div>;
   }
 
   if (!user) {
