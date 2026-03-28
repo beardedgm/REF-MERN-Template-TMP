@@ -30,6 +30,7 @@ The Vite dev server proxies `/api` requests to `localhost:5000`, so the frontend
 
 ```
 server.js              — Express entry point (middleware ordering matters here)
+render.yaml            — Render.com blueprint (defines both services for deploy)
 config/
   db.js                — Mongoose connection with event listeners
   session.js           — express-session + connect-mongo config
