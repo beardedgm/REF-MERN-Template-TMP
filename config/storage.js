@@ -1,12 +1,14 @@
-const provider = process.env.STORAGE_PROVIDER || 'gcs';
+const provider = process.env.STORAGE_PROVIDER || 'mongodb';
 
 let storage;
 
 // Only initialize storage if the required env vars are set.
-// This lets the server start without storage configured — uploads
-// will fail at request time with a clear error instead of crashing on boot.
+// MongoDB is always configured (it's required for the app).
+// GCS and R2 need additional env vars.
 function isConfigured() {
   switch (provider) {
+    case 'mongodb':
+      return true; // MongoDB is already connected — no extra config needed
     case 'gcs':
       return !!(process.env.GCS_BUCKET_NAME && process.env.GCS_PROJECT_ID);
     case 'r2':
@@ -24,6 +26,11 @@ function isConfigured() {
 
 if (isConfigured()) {
   switch (provider) {
+    case 'mongodb': {
+      const { createMongoDBStorage } = require('./storage-mongodb');
+      storage = createMongoDBStorage();
+      break;
+    }
     case 'gcs': {
       const { createGCSStorage } = require('./storage-gcs');
       storage = createGCSStorage();
@@ -36,7 +43,7 @@ if (isConfigured()) {
     }
     default:
       throw new Error(
-        `Unknown STORAGE_PROVIDER "${provider}". Use "gcs" or "r2".`
+        `Unknown STORAGE_PROVIDER "${provider}". Use "mongodb", "gcs", or "r2".`
       );
   }
 } else {

@@ -34,7 +34,8 @@ render.yaml            — Render.com blueprint (defines both services for deplo
 config/
   db.js                — Mongoose connection with event listeners
   session.js           — express-session + connect-mongo config
-  storage.js           — Storage provider dispatcher (GCS or R2 via STORAGE_PROVIDER env)
+  storage.js           — Storage provider dispatcher (MongoDB, GCS, or R2 via STORAGE_PROVIDER env)
+  storage-mongodb.js   — MongoDB GridFS provider (default, no extra config)
   storage-gcs.js       — Google Cloud Storage provider
   storage-r2.js        — Cloudflare R2 provider (S3-compatible)
 models/
@@ -49,7 +50,8 @@ routes/
   auth.js              — register, login, logout, me, profile-picture
   stripe.js            — webhook + commented checkout/portal stubs
   upload.js            — general-purpose file upload endpoint
-  index.js             — mounts auth + stripe + upload under /api
+  files.js             — serves files from MongoDB GridFS
+  index.js             — mounts auth + stripe + upload + files under /api
 utils/
   password.js          — hashPassword/verifyPassword using crypto.scrypt
   AppError.js          — operational error class with statusCode
@@ -95,7 +97,7 @@ client/
 - **Rate limiting:** MongoDB sliding window with TTL indexes
 - **Payments:** Stripe Checkout + webhooks + Customer Portal (stubs in routes/stripe.js, uncomment when needed)
 - **Email:** Resend API with HTML template literals (activate when needed)
-- **File storage:** Google Cloud Storage or Cloudflare R2 (switchable via `STORAGE_PROVIDER` env var) + multer for multipart parsing
+- **File storage:** MongoDB GridFS (default), Google Cloud Storage, or Cloudflare R2 (switchable via `STORAGE_PROVIDER` env var) + multer for multipart parsing
 - **Monitoring:** Sentry (installed, wire when needed), PostHog (add client-side when needed)
 
 ### Frontend
@@ -176,7 +178,7 @@ All pages use `React.lazy()` + `Suspense` for code-splitting. This keeps each pa
 3. Use `storage.remove(filename)` to delete files, `storage.getPublicUrl(filename)` for URLs
 4. On the frontend, use `api.upload(path, file, { method })` — it handles FormData automatically
 5. See `routes/upload.js` for the general pattern, `routes/auth.js` profile-picture for a model-specific example
-6. Set `STORAGE_PROVIDER` to `gcs` or `r2` in `.env` — routes don't need to change
+6. Set `STORAGE_PROVIDER` to `mongodb`, `gcs`, or `r2` in `.env` — routes don't need to change. Default is `mongodb` (works out of the box).
 
 ### New Zod Schema
 1. Add to `shared/schemas/` — both sides can import it
@@ -207,5 +209,5 @@ All pages use `React.lazy()` + `Suspense` for code-splitting. This keeps each pa
 - Resend for transactional email — no SendGrid/Mailgun
 - Cloudflare Turnstile for bot protection — no reCAPTCHA
 - `AppError` for operational errors (known, expected) — global error handler distinguishes from bugs
-- File uploads go to GCS or Cloudflare R2 (set `STORAGE_PROVIDER` env var) — never store binary files in MongoDB
+- File uploads default to MongoDB GridFS (no extra config). Use GCS or R2 for production scale (set `STORAGE_PROVIDER` env var).
 - Use `upload()` middleware factory for multer config — follows same pattern as `validate()` and `rateLimit()`

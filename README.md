@@ -36,7 +36,7 @@ The Vite dev server proxies `/api` requests to `localhost:5000`, so the frontend
 | Validation | Zod | Shared schemas between frontend and backend |
 | Security | Helmet.js | Secure headers out of the box |
 | Rate limiting | MongoDB sliding window | TTL indexes for auto-cleanup |
-| File storage | Google Cloud Storage or Cloudflare R2 | Switchable via env var, multer for parsing |
+| File storage | MongoDB GridFS, Google Cloud Storage, or Cloudflare R2 | MongoDB default (no extra config), switchable via env var |
 | Payments | Stripe | Checkout, webhooks, portal stubs (uncomment when needed) |
 | Email | Resend | Activate when needed |
 | Bot protection | Cloudflare Turnstile | Activate when needed |
@@ -80,6 +80,7 @@ config/
   db.js                    Mongoose connection with event listeners
   session.js               express-session + connect-mongo config
   storage.js               Storage provider dispatcher (GCS or R2)
+  storage-mongodb.js       MongoDB GridFS provider (default, no extra config)
   storage-gcs.js           Google Cloud Storage provider
   storage-r2.js            Cloudflare R2 provider (S3-compatible)
 models/
@@ -94,6 +95,7 @@ routes/
   auth.js                  register, login, logout, me, profile-picture
   stripe.js                webhook + commented checkout/portal stubs
   upload.js                general-purpose file upload endpoint
+  files.js                 serves files from MongoDB GridFS
   index.js                 mounts all routes under /api
 utils/
   password.js              hashPassword / verifyPassword using crypto.scrypt
@@ -137,6 +139,7 @@ client/
 | GET | `/api/auth/me` | Yes | Get current user |
 | PUT | `/api/auth/profile-picture` | Yes | Upload profile picture. Multipart form, field: `file` (max 2MB, JPEG/PNG/WebP) |
 | POST | `/api/upload` | Yes | General file upload. Multipart form, field: `file` (max 5MB, JPEG/PNG/WebP/PDF) |
+| GET | `/api/files/:filename` | No | Serve file from MongoDB GridFS (when using MongoDB storage) |
 | POST | `/api/stripe/webhook` | No | Stripe webhook receiver (raw body) |
 
 ### Error responses
@@ -223,7 +226,7 @@ Both sides use the same rules — change once, applied everywhere.
 2. In your handler, call `storage.upload(filename, buffer, contentType)` — returns `{ url, filename }`
 3. Use `storage.remove(filename)` to delete, `storage.getPublicUrl(filename)` for URLs
 4. On the frontend, call `api.upload(path, file, { method })` — handles FormData automatically
-5. Set `STORAGE_PROVIDER` to `gcs` or `r2` in `.env` — your route code doesn't change
+5. Set `STORAGE_PROVIDER` to `mongodb`, `gcs`, or `r2` in `.env` — your route code doesn't change. Default is `mongodb` (works out of the box).
 
 ```js
 // Backend route handler
@@ -287,9 +290,17 @@ These are installed and stubbed — uncomment and configure when you need them.
 
 Set `STORAGE_PROVIDER` to choose your backend — only configure the vars for the one you use.
 
-**Option A: Google Cloud Storage**
+**Option A: MongoDB GridFS** (default)
 
-Set `STORAGE_PROVIDER=gcs` in your `.env` (this is the default).
+Set `STORAGE_PROVIDER=mongodb` in your `.env` (or leave it unset — this is the default).
+
+No extra configuration needed. Files are stored in your existing MongoDB database using GridFS and served via `/api/files/:filename`. This works out of the box — just set `MONGODB_URI` and uploads work.
+
+Best for: getting started, development, and small-scale production.
+
+**Option B: Google Cloud Storage**
+
+Set `STORAGE_PROVIDER=gcs` in your `.env`.
 
 | Variable | Description |
 |----------|-------------|
@@ -299,7 +310,9 @@ Set `STORAGE_PROVIDER=gcs` in your `.env` (this is the default).
 
 Setup: Create a bucket in [Google Cloud Console](https://console.cloud.google.com/storage), create a service account with **Storage Object Admin** role, download the JSON key file, and add it to `.gitignore`.
 
-**Option B: Cloudflare R2**
+Best for: production with high traffic or large files.
+
+**Option C: Cloudflare R2**
 
 Set `STORAGE_PROVIDER=r2` in your `.env`.
 
@@ -312,6 +325,8 @@ Set `STORAGE_PROVIDER=r2` in your `.env`.
 | `R2_PUBLIC_URL` | Public URL for the bucket (custom domain or `r2.dev` URL) |
 
 Setup: Create an R2 bucket in the [Cloudflare dashboard](https://dash.cloudflare.com), enable public access, create an API token with Object Read & Write permissions.
+
+Best for: production with S3-compatible tooling and no egress fees.
 
 ### Integrations (activate when needed)
 
@@ -412,7 +427,7 @@ These are the patterns this template follows. Stick with them for consistency:
 - Zod schemas are the single source of truth for validation
 - The User model has `select: false` on the password field — you must use `.select('+password')` to access it
 - `AppError` for operational errors (expected, like "email already in use") — the global error handler distinguishes these from bugs
-- File uploads go to GCS or Cloudflare R2 — never store binary files in MongoDB
+- File uploads default to MongoDB GridFS (no extra config). Use GCS or R2 for production scale (set `STORAGE_PROVIDER` env var).
 - Stripe webhooks must be idempotent
 - Use `upload()`, `validate()`, and `rateLimit()` middleware factories — they all follow the same pattern
 
