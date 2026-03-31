@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
-const { bucket } = require('../config');
+const { storage } = require('../config');
 const { requireAuth, upload } = require('../middleware');
 
 const router = express.Router();
@@ -22,18 +22,12 @@ router.post(
 
       const ext = path.extname(req.file.originalname).toLowerCase();
       const filename = `uploads/${crypto.randomUUID()}${ext}`;
-      const blob = bucket.file(filename);
 
-      await blob.save(req.file.buffer, {
-        contentType: req.file.mimetype,
-        metadata: { uploadedBy: req.user._id.toString() },
+      const result = await storage.upload(filename, req.file.buffer, req.file.mimetype, {
+        uploadedBy: req.user._id.toString(),
       });
 
-      await blob.makePublic();
-
-      const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-
-      res.status(201).json({ url, filename });
+      res.status(201).json({ url: result.url, filename: result.filename });
     } catch (err) {
       next(err);
     }

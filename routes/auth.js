@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { User } = require('../models');
-const { bucket } = require('../config');
+const { storage } = require('../config');
 const { hashPassword, verifyPassword, AppError } = require('../utils');
 const { requireAuth, validate, rateLimit, upload } = require('../middleware');
 const { registerSchema, loginSchema } = require('../shared/schemas/auth');
@@ -116,17 +116,15 @@ router.put(
 
       const ext = path.extname(req.file.originalname).toLowerCase();
       const filename = `avatars/${req.user._id}-${Date.now()}${ext}`;
-      const blob = bucket.file(filename);
 
-      await blob.save(req.file.buffer, {
-        contentType: req.file.mimetype,
-      });
+      // Delete old avatar if it exists
+      if (req.user.profilePicture) {
+        const oldKey = req.user.profilePicture.split('/').slice(-2).join('/');
+        await storage.remove(oldKey).catch(() => {});
+      }
 
-      await blob.makePublic();
+      const { url } = await storage.upload(filename, req.file.buffer, req.file.mimetype);
 
-      const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-
-      // TODO: delete old avatar from GCS if it exists
       req.user.profilePicture = url;
       await req.user.save();
 

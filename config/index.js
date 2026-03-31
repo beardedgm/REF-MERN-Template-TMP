@@ -1,5 +1,5 @@
 const connectDB = require('./db');
 const createSessionMiddleware = require('./session');
-const { storage, bucket } = require('./storage');
+const { storage } = require('./storage');
 
-module.exports = { connectDB, createSessionMiddleware, storage, bucket };
+module.exports = { connectDB, createSessionMiddleware, storage };
