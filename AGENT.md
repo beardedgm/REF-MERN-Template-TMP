@@ -194,8 +194,11 @@ Routes use a provider-agnostic interface — no SDK-specific code needed:
 
 ### New Frontend Page
 1. Create `client/src/pages/YourPage.jsx`
-2. Add a `<Route>` in `App.jsx` — inside `<ProtectedRoute>` if auth required
-3. Add nav link in `Layout.jsx` if needed
+2. Add a lazy import in `App.jsx`: `const YourPage = lazy(() => import('./pages/YourPage'))`
+3. Add a `<Route>` in `App.jsx` — inside `<ProtectedRoute>` if auth required
+4. Add nav link in `Layout.jsx` if needed
+
+All pages use `React.lazy()` + `Suspense` for code-splitting. This keeps each page in its own chunk so the initial bundle stays small and avoids Vite's 500KB chunk size warning.
 
 ### New File Upload Feature
 1. Use the `upload()` middleware from `middleware/` — pass `{ maxSize, allowedTypes, fieldName }` to customize
