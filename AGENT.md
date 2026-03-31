@@ -1,14 +1,13 @@
-# CLAUDE.md
+# AGENT.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. For other AI tools, see `AGENT.md`. Keep both files in sync when making architectural changes.
+This file provides context for AI coding assistants (Cursor, GitHub Copilot, Windsurf, Cline, OpenAI Codex, or any agentic tool) working with this repository. If you're using Claude Code, see `CLAUDE.md` for Claude-specific configuration.
 
 ## Project Overview
 
-MERN SaaS template with separate frontend and backend. Clone this repo, receive a PRD, and start building. Auth, validation, rate limiting, and project structure are already wired.
+MERN SaaS template with separate frontend and backend. Clone this repo, receive a PRD, and start building. Auth, validation, rate limiting, file uploads, and project structure are already wired.
 
-## Starting Dev Servers
+## Dev Servers
 
-Both servers are configured in `.claude/launch.json` for preview:
 - **API server:** `npm run dev` (port 5000, nodemon auto-reload)
 - **Client server:** `cd client && npm run dev` (port 5173, Vite HMR)
 
@@ -85,7 +84,7 @@ client/
 ## Stack
 
 ### Backend
-- **Runtime:** Node.js (CommonJS)
+- **Runtime:** Node.js (CommonJS — use `require`/`module.exports`, not `import`/`export`)
 - **Framework:** Express 5
 - **Database:** MongoDB Atlas via Mongoose
 - **Auth:** Session-based with express-session + connect-mongo (HTTP-only cookies, NOT JWT)
@@ -107,6 +106,18 @@ client/
 - **Validation:** Zod (same schemas as backend via `shared/` alias)
 - **Path aliases:** `@` → `src/`, `shared` → `../shared/` (configured in vite.config.js)
 
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/register` | No | Create account (rate limited: 5/15min) |
+| POST | `/api/auth/login` | No | Login (rate limited: 10/15min) |
+| POST | `/api/auth/logout` | No | Destroy session |
+| GET | `/api/auth/me` | Yes | Get current user |
+| PUT | `/api/auth/profile-picture` | Yes | Upload profile picture (max 2MB, images only) |
+| POST | `/api/upload` | Yes | General file upload (max 5MB, images + PDF) |
+| POST | `/api/stripe/webhook` | No | Stripe webhook receiver (raw body) |
+
 ## Key Architecture Decisions
 
 ### Auth Flow
@@ -118,13 +129,14 @@ client/
 6. Logout destroys server session + clears cookie + clears Zustand + invalidates query
 
 ### Middleware Pipeline Order (server.js)
-The order in server.js is critical:
+The order in server.js is critical — do not rearrange:
 1. `helmet()` — security headers first
 2. `cors()` — with credentials + explicit origin
 3. `express.raw()` for `/api/stripe/webhook` — Stripe needs raw bytes for signature verification
 4. `express.json()` — AFTER the raw body route, otherwise Stripe webhooks break
 5. `session()` — after body parsing
 6. Routes — after all middleware
+7. Global error handler — catches `AppError` (operational) vs unexpected errors
 
 ### Shared Zod Schemas
 Schemas live in `shared/schemas/` and are used by both sides:
@@ -142,6 +154,13 @@ Schemas live in `shared/schemas/` and are used by both sides:
 - Always sends `credentials: 'include'` (required for session cookies cross-origin)
 - Throws structured errors with `status` and `details` properties
 - Uses `VITE_API_URL` env var in production, empty string in dev (Vite proxy handles it)
+- Has an `upload()` method for file uploads via FormData
+
+### File Storage
+`config/storage.js` dispatches to either GCS or R2 based on `STORAGE_PROVIDER` env var. Routes use a provider-agnostic interface:
+- `storage.upload(filename, buffer, contentType, metadata?)` → `{ url, filename }`
+- `storage.remove(filename)` → deletes a file
+- `storage.getPublicUrl(filename)` → returns the public URL
 
 ## How to Add New Features
 
@@ -186,6 +205,8 @@ Schemas live in `shared/schemas/` and are used by both sides:
 
 ## Conventions
 
+When generating or modifying code in this project, follow these rules:
+
 - Frontend and backend are fully decoupled — never serve React from Express
 - API routes return JSON, always under `/api/`
 - Session-based auth only — never use JWT for browser sessions
@@ -198,3 +219,5 @@ Schemas live in `shared/schemas/` and are used by both sides:
 - `AppError` for operational errors (known, expected) — global error handler distinguishes from bugs
 - File uploads go to GCS or Cloudflare R2 (set `STORAGE_PROVIDER` env var) — never store binary files in MongoDB
 - Use `upload()` middleware factory for multer config — follows same pattern as `validate()` and `rateLimit()`
+- Backend is CommonJS (`require`/`module.exports`) — do not use ES module syntax
+- Frontend is ESM (`import`/`export`) — standard React/Vite setup
