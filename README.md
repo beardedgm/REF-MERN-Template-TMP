@@ -333,20 +333,52 @@ The order in `server.js` is critical — changing it will break things:
 4. `express.json()` — AFTER the raw body route, otherwise Stripe webhooks break
 5. `session()` — after body parsing
 6. Routes — after all middleware
-7. Global error handler — catches `AppError` (operational) vs unexpected errors
+7. Static file serving + SPA catch-all (production only)
+8. Global error handler — catches `AppError` (operational) vs unexpected errors
+
+### Express 5 Gotchas
+
+This template uses Express 5, which has breaking changes from Express 4:
+
+- **Wildcard routes:** Express 5 uses `path-to-regexp` v8 which requires named parameters. Use `app.get('/{*path}')` NOT `app.get('*')`. The old `*` syntax throws `Missing parameter name` errors.
+- **connect-mongo v6 import:** In CommonJS, use `require('connect-mongo').default` — the store class is on `.default`, not the top-level export. Without `.default`, `MongoStore.create` is undefined.
 
 ## Deployment
 
-This template is configured for [Render.com](https://render.com) with a two-service setup:
+This template is configured for [Render.com](https://render.com) as a single web service:
 
-- **`render.yaml`** defines both services — Render reads this blueprint automatically when you connect the repo
-- **API:** `npm start` (Express server)
-- **Client:** `cd client && npm run build` serves `client/dist/` as a static site
-- **Environment variables:** Set in the Render dashboard
-- `trust proxy` is already configured for Render's load balancer
-- Static site has an SPA rewrite rule (`/* → /index.html`) for client-side routing
+- **`render.yaml`** defines the service — Render reads this blueprint when you connect the repo
+- **Build command:** `npm install && cd client && npm install && npm run build`
+- **Start command:** `node server.js`
+- **How it works:** In production (`NODE_ENV=production`), Express serves the React build from `client/dist` as static files, with a catch-all route that serves `index.html` for React Router. API routes under `/api` take priority over the catch-all.
 
-You can deploy to any platform — the Render blueprint is just a convenience. The frontend and backend are fully decoupled.
+### Required env vars on Render
+
+| Variable | Value |
+|----------|-------|
+| `MONGODB_URI` | Your MongoDB Atlas connection string |
+| `SESSION_SECRET` | Random 32+ character string |
+| `CLIENT_URL` | Your Render service URL (e.g. `https://your-app.onrender.com`) |
+
+`NODE_ENV=production` and `SESSION_SECRET` are set automatically by `render.yaml`. Everything else is optional until you need it.
+
+### Render-specific notes
+
+- **Env vars are available at both build time and runtime**, so `VITE_API_URL` gets baked into the Vite build during the build step.
+- **Render caches the build command** from initial service creation. If you update `render.yaml`, you must also update the build command manually in the Render dashboard under Settings → Build & Deploy.
+- `trust proxy` is already configured for Render's load balancer.
+- The free plan spins down after inactivity — first request after sleep takes ~30 seconds.
+
+### Local development vs production
+
+| | Local (dev) | Render (production) |
+|---|---|---|
+| **Frontend** | Vite dev server on port 5173 | Built to `client/dist`, served by Express |
+| **API** | Express on port 5000 | Express on Render's `PORT` |
+| **Proxy** | Vite proxies `/api` to Express | Same origin, no proxy needed |
+| **Servers** | Two separate processes | One process |
+
+You can deploy to any platform — the Render blueprint is just a convenience.
 
 ## Commands Reference
 
@@ -370,7 +402,7 @@ You can deploy to any platform — the Render blueprint is just a convenience. T
 
 These are the patterns this template follows. Stick with them for consistency:
 
-- Frontend and backend are fully decoupled — never serve React from Express
+- Frontend and backend are decoupled in dev (two servers), unified in production (Express serves both)
 - API routes return JSON, always under `/api/`
 - Session-based auth only — no JWT for browser sessions
 - `crypto.scrypt` for password hashing — no external hashing libraries

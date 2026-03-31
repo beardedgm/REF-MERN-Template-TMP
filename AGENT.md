@@ -136,6 +136,10 @@ All API errors return JSON: `{ "error": "message", "details": { "field": "error"
 5. `ProtectedRoute` checks `useAuth()` → redirects to `/login` if not authenticated
 6. Logout destroys server session + clears cookie + clears Zustand + invalidates query
 
+### Express 5 Gotchas
+- **Wildcard routes:** Express 5 uses `path-to-regexp` v8 which requires named parameters. Use `app.get('/{*path}')` NOT `app.get('*')`. The old `*` syntax throws `Missing parameter name` errors.
+- **connect-mongo v6 import:** In CommonJS, use `require('connect-mongo').default` — the store class is on `.default`, not the top-level export. Without `.default`, `MongoStore.create` is undefined.
+
 ### Middleware Pipeline Order (server.js)
 The order in server.js is critical — do not rearrange:
 1. `helmet()` — security headers first
@@ -144,7 +148,8 @@ The order in server.js is critical — do not rearrange:
 4. `express.json()` — AFTER the raw body route, otherwise Stripe webhooks break
 5. `session()` — after body parsing
 6. Routes — after all middleware
-7. Global error handler — catches `AppError` (operational) vs unexpected errors
+7. Static file serving + SPA catch-all (production only)
+8. Global error handler — catches `AppError` (operational) vs unexpected errors
 
 ### Shared Zod Schemas
 Schemas live in `shared/schemas/` and are used by both sides:
@@ -207,19 +212,21 @@ Routes use a provider-agnostic interface — no SDK-specific code needed:
 
 ## Deployment
 
-- **Hosting:** Render.com (frontend and backend deployed as separate services)
-- **Blueprint:** `render.yaml` defines both services — Render reads this on connect
-- **API start command:** `npm start`
-- **Client build command:** `cd client && npm run build` (serve `client/dist/`)
-- **Environment variables:** Set in Render dashboard (see `.env.example` for full list)
+- **Hosting:** Render.com (single web service serves both API and React frontend)
+- **Blueprint:** `render.yaml` defines the service — Render reads this on connect
+- **Build command:** `npm install && cd client && npm install && npm run build`
+- **Start command:** `node server.js`
+- **How it works:** In production (`NODE_ENV=production`), Express serves `client/dist` as static files with a catch-all route for React Router. API routes under `/api` take priority.
+- **Environment variables:** Set in Render dashboard (see `.env.example` for full list). Env vars are available at both build time and runtime on Render, so `VITE_API_URL` gets baked into the Vite build.
 - `trust proxy` is already configured for Render's load balancer
-- Static site has SPA rewrite rule (`/* → /index.html`) for client-side routing
+- **Local dev is still two servers:** `npm run dev` (API on 5000) + `cd client && npm run dev` (Vite on 5173 with proxy). The static serving block is skipped when `NODE_ENV` is not `production`.
+- **Important:** Render caches the build command from initial service creation. If you update `render.yaml`, you must also update the build command in the Render dashboard manually.
 
 ## Conventions
 
 When generating or modifying code in this project, follow these rules:
 
-- Frontend and backend are fully decoupled — never serve React from Express
+- Frontend and backend are decoupled in dev (two servers), unified in production (Express serves both)
 - API routes return JSON, always under `/api/`
 - Session-based auth only — never use JWT for browser sessions
 - Use `crypto.scrypt` for password hashing — no external hashing libraries
