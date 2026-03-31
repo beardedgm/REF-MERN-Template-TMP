@@ -203,8 +203,11 @@ module.exports = router;
 ### Add a new frontend page
 
 1. Create `client/src/pages/YourPage.jsx`
-2. Add a `<Route>` in `App.jsx` — wrap with `<ProtectedRoute>` if auth is required
-3. Add a nav link in `Layout.jsx` if needed
+2. Add a lazy import in `App.jsx`: `const YourPage = lazy(() => import('./pages/YourPage'))`
+3. Add a `<Route>` in `App.jsx` — wrap with `<ProtectedRoute>` if auth is required
+4. Add a nav link in `Layout.jsx` if needed
+
+All pages use `React.lazy()` + `Suspense` for code-splitting. This keeps each page in its own chunk so the initial bundle stays small and avoids Vite's 500KB chunk size warning on production builds.
 
 ### Add a new Zod schema (shared validation)
 
