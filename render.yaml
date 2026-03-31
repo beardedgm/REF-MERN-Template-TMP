@@ -26,6 +26,27 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      # File storage — set STORAGE_PROVIDER to "gcs" or "r2"
+      - key: STORAGE_PROVIDER
+        sync: false
+      # Google Cloud Storage (when STORAGE_PROVIDER=gcs)
+      - key: GCS_BUCKET_NAME
+        sync: false
+      - key: GCS_PROJECT_ID
+        sync: false
+      - key: GCS_KEY_FILE
+        sync: false
+      # Cloudflare R2 (when STORAGE_PROVIDER=r2)
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
 
   # Frontend (static site)
   - type: web
@@ -34,6 +55,9 @@ services:
     plan: free
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
     headers:
       - path: /*
         name: X-Frame-Options

@@ -131,13 +131,30 @@ client/
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/auth/register` | No | Create account (rate limited: 5/15min) |
-| POST | `/api/auth/login` | No | Login (rate limited: 10/15min) |
+| POST | `/api/auth/register` | No | Create account (rate limited: 5/15min). Body: `{ email, password }` (password min 8 chars) |
+| POST | `/api/auth/login` | No | Login (rate limited: 10/15min). Body: `{ email, password }` |
 | POST | `/api/auth/logout` | No | Destroy session |
 | GET | `/api/auth/me` | Yes | Get current user |
-| PUT | `/api/auth/profile-picture` | Yes | Upload profile picture |
-| POST | `/api/upload` | Yes | General-purpose file upload |
-| POST | `/api/stripe/webhook` | No | Stripe webhook receiver |
+| PUT | `/api/auth/profile-picture` | Yes | Upload profile picture. Multipart form, field: `file` (max 2MB, JPEG/PNG/WebP) |
+| POST | `/api/upload` | Yes | General file upload. Multipart form, field: `file` (max 5MB, JPEG/PNG/WebP/PDF) |
+| POST | `/api/stripe/webhook` | No | Stripe webhook receiver (raw body) |
+
+### Error responses
+
+All API errors return JSON with this structure:
+
+```json
+{
+  "error": "Human-readable error message",
+  "details": { "fieldName": "Validation error for this field" }
+}
+```
+
+- **400** — Validation failed (Zod schema errors in `details`)
+- **401** — Not authenticated or invalid credentials
+- **409** — Conflict (e.g. email already in use)
+- **429** — Rate limited (check `Retry-After` header for seconds until retry)
+- **500** — Server error (generic message, details logged server-side)
 
 ## Auth Flow
 
@@ -267,7 +284,9 @@ These are installed and stubbed — uncomment and configure when you need them.
 
 Set `STORAGE_PROVIDER` to choose your backend — only configure the vars for the one you use.
 
-**Google Cloud Storage** (`STORAGE_PROVIDER=gcs`, the default):
+**Option A: Google Cloud Storage**
+
+Set `STORAGE_PROVIDER=gcs` in your `.env` (this is the default).
 
 | Variable | Description |
 |----------|-------------|
@@ -277,7 +296,9 @@ Set `STORAGE_PROVIDER` to choose your backend — only configure the vars for th
 
 Setup: Create a bucket in [Google Cloud Console](https://console.cloud.google.com/storage), create a service account with **Storage Object Admin** role, download the JSON key file, and add it to `.gitignore`.
 
-**Cloudflare R2** (`STORAGE_PROVIDER=r2`):
+**Option B: Cloudflare R2**
+
+Set `STORAGE_PROVIDER=r2` in your `.env`.
 
 | Variable | Description |
 |----------|-------------|

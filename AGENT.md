@@ -110,13 +110,21 @@ client/
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/auth/register` | No | Create account (rate limited: 5/15min) |
-| POST | `/api/auth/login` | No | Login (rate limited: 10/15min) |
+| POST | `/api/auth/register` | No | Create account (rate limited: 5/15min). Body: `{ email, password }` (password min 8 chars) |
+| POST | `/api/auth/login` | No | Login (rate limited: 10/15min). Body: `{ email, password }` |
 | POST | `/api/auth/logout` | No | Destroy session |
 | GET | `/api/auth/me` | Yes | Get current user |
-| PUT | `/api/auth/profile-picture` | Yes | Upload profile picture (max 2MB, images only) |
-| POST | `/api/upload` | Yes | General file upload (max 5MB, images + PDF) |
+| PUT | `/api/auth/profile-picture` | Yes | Upload profile picture. Multipart form, field: `file` (max 2MB, JPEG/PNG/WebP) |
+| POST | `/api/upload` | Yes | General file upload. Multipart form, field: `file` (max 5MB, JPEG/PNG/WebP/PDF) |
 | POST | `/api/stripe/webhook` | No | Stripe webhook receiver (raw body) |
+
+### Error Responses
+All API errors return JSON: `{ "error": "message", "details": { "field": "error" } }`
+- **400** — Validation failed (Zod schema errors in `details`)
+- **401** — Not authenticated or invalid credentials
+- **409** — Conflict (e.g. email already in use)
+- **429** — Rate limited (`Retry-After` header present)
+- **500** — Server error (generic message, details logged server-side)
 
 ## Key Architecture Decisions
 
@@ -157,7 +165,11 @@ Schemas live in `shared/schemas/` and are used by both sides:
 - Has an `upload()` method for file uploads via FormData
 
 ### File Storage
-`config/storage.js` dispatches to either GCS or R2 based on `STORAGE_PROVIDER` env var. Routes use a provider-agnostic interface:
+`config/storage.js` dispatches to either GCS or R2 based on the `STORAGE_PROVIDER` env var:
+- Set `STORAGE_PROVIDER=gcs` for Google Cloud Storage (default)
+- Set `STORAGE_PROVIDER=r2` for Cloudflare R2
+
+Routes use a provider-agnostic interface — no SDK-specific code needed:
 - `storage.upload(filename, buffer, contentType, metadata?)` → `{ url, filename }`
 - `storage.remove(filename)` → deletes a file
 - `storage.getPublicUrl(filename)` → returns the public URL
