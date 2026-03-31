@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema(
       enum: ['free', 'pro'],
       default: 'free',
     },
+    profilePicture: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

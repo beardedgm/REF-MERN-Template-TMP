@@ -34,17 +34,20 @@ render.yaml            — Render.com blueprint (defines both services for deplo
 config/
   db.js                — Mongoose connection with event listeners
   session.js           — express-session + connect-mongo config
+  storage.js           — Google Cloud Storage client + bucket handle
 models/
-  User.js              — email, password (select:false), stripeCustomerId, plan
+  User.js              — email, password (select:false), stripeCustomerId, plan, profilePicture
   RateLimit.js         — MongoDB rate limiting with TTL index
 middleware/
   auth.js              — requireAuth (session check, attaches req.user)
   validate.js          — validate(zodSchema) factory
   rateLimit.js         — MongoDB sliding window rate limiter
+  upload.js            — upload(opts) multer factory for file uploads
 routes/
-  auth.js              — register, login, logout, me
+  auth.js              — register, login, logout, me, profile-picture
   stripe.js            — webhook + commented checkout/portal stubs
-  index.js             — mounts auth + stripe under /api
+  upload.js            — general-purpose file upload to GCS
+  index.js             — mounts auth + stripe + upload under /api
 utils/
   password.js          — hashPassword/verifyPassword using crypto.scrypt
   AppError.js          — operational error class with statusCode
@@ -61,7 +64,7 @@ client/
       Home.jsx         — landing page
       Login.jsx        — login form with Zod validation
       Register.jsx     — register form with Zod validation
-      Dashboard.jsx    — protected page shell
+      Dashboard.jsx    — protected page with profile picture upload
       NotFound.jsx     — 404
     hooks/
       useAuth.js       — GET /api/auth/me query
@@ -69,7 +72,7 @@ client/
       useRegister.js   — register mutation
       useLogout.js     — logout mutation
     lib/
-      api.js           — fetch wrapper (credentials: 'include')
+      api.js           — fetch wrapper (credentials: 'include', file upload support)
       queryClient.js   — TanStack Query client config
     store/
       authStore.js     — Zustand user store
@@ -90,6 +93,7 @@ client/
 - **Rate limiting:** MongoDB sliding window with TTL indexes
 - **Payments:** Stripe Checkout + webhooks + Customer Portal (stubs in routes/stripe.js, uncomment when needed)
 - **Email:** Resend API with HTML template literals (activate when needed)
+- **File storage:** Google Cloud Storage via `@google-cloud/storage` + multer for multipart parsing
 - **Monitoring:** Sentry (installed, wire when needed), PostHog (add client-side when needed)
 
 ### Frontend
@@ -155,6 +159,13 @@ Schemas live in `shared/schemas/` and are used by both sides:
 2. Add a `<Route>` in `App.jsx` — inside `<ProtectedRoute>` if auth required
 3. Add nav link in `Layout.jsx` if needed
 
+### New File Upload Feature
+1. Use the `upload()` middleware from `middleware/` — pass `{ maxSize, allowedTypes, fieldName }` to customize
+2. In your route handler, access `req.file.buffer` and upload to GCS via `bucket.file(name).save(buffer)`
+3. Call `blob.makePublic()` for public URLs
+4. On the frontend, use `api.upload(path, file, { method })` — it handles FormData automatically
+5. See `routes/upload.js` for the general pattern, `routes/auth.js` profile-picture for a model-specific example
+
 ### New Zod Schema
 1. Add to `shared/schemas/` — both sides can import it
 2. Use in backend middleware: `validate(yourSchema)`
@@ -182,3 +193,5 @@ Schemas live in `shared/schemas/` and are used by both sides:
 - Resend for transactional email — no SendGrid/Mailgun
 - Cloudflare Turnstile for bot protection — no reCAPTCHA
 - `AppError` for operational errors (known, expected) — global error handler distinguishes from bugs
+- File uploads go to Google Cloud Storage — never store binary files in MongoDB
+- Use `upload()` middleware factory for multer config — follows same pattern as `validate()` and `rateLimit()`

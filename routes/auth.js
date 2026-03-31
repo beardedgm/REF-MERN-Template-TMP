@@ -1,7 +1,9 @@
 const express = require('express');
+const path = require('path');
 const { User } = require('../models');
+const { bucket } = require('../config');
 const { hashPassword, verifyPassword, AppError } = require('../utils');
-const { requireAuth, validate, rateLimit } = require('../middleware');
+const { requireAuth, validate, rateLimit, upload } = require('../middleware');
 const { registerSchema, loginSchema } = require('../shared/schemas/auth');
 
 const router = express.Router();
@@ -30,6 +32,7 @@ router.post(
           id: user._id,
           email: user.email,
           plan: user.plan,
+          profilePicture: user.profilePicture,
           createdAt: user.createdAt,
         },
       });
@@ -64,6 +67,7 @@ router.post(
             id: user._id,
             email: user.email,
             plan: user.plan,
+            profilePicture: user.profilePicture,
             createdAt: user.createdAt,
           },
         });
@@ -90,9 +94,55 @@ router.get('/me', requireAuth, (req, res) => {
       id: req.user._id,
       email: req.user.email,
       plan: req.user.plan,
+      profilePicture: req.user.profilePicture,
       createdAt: req.user.createdAt,
     },
   });
 });
+
+// PUT /api/auth/profile-picture
+router.put(
+  '/profile-picture',
+  requireAuth,
+  upload({
+    maxSize: 2 * 1024 * 1024,
+    allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+  }),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file provided' });
+      }
+
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const filename = `avatars/${req.user._id}-${Date.now()}${ext}`;
+      const blob = bucket.file(filename);
+
+      await blob.save(req.file.buffer, {
+        contentType: req.file.mimetype,
+      });
+
+      await blob.makePublic();
+
+      const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+
+      // TODO: delete old avatar from GCS if it exists
+      req.user.profilePicture = url;
+      await req.user.save();
+
+      res.json({
+        user: {
+          id: req.user._id,
+          email: req.user.email,
+          plan: req.user.plan,
+          profilePicture: req.user.profilePicture,
+          createdAt: req.user.createdAt,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 module.exports = router;
