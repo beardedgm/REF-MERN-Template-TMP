@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 require('dotenv').config();
@@ -33,10 +34,20 @@ app.use(createSessionMiddleware());
 // API routes
 app.use('/api', apiRoutes);
 
-// Health check
-app.get('/', (req, res) => {
-  res.json({ status: 'ok' });
-});
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client/dist')));
+
+  // SPA catch-all — any non-API route serves index.html for React Router
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+  });
+} else {
+  // Health check for development (in production, / serves the React app)
+  app.get('/', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+}
 
 // Global error handler
 app.use((err, req, res, next) => {

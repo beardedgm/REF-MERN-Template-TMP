@@ -1,12 +1,10 @@
 services:
-  # Backend API
   - type: web
     name: api
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && cd client && npm install && npm run build
     startCommand: node server.js
-    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,6 +13,8 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: CLIENT_URL
+        sync: false
+      - key: VITE_API_URL
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
@@ -47,22 +47,3 @@ services:
         sync: false
       - key: R2_PUBLIC_URL
         sync: false
-
-  # Frontend (static site)
-  - type: web
-    name: client
-    runtime: static
-    plan: free
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: ./client/dist
-    envVars:
-      - key: VITE_API_URL
-        sync: false
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
