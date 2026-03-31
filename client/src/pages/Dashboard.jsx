@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useAuthStore } from '../store';
 import api from '../lib/api';
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
@@ -11,6 +13,12 @@ export default function Dashboard() {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      alert('File is too large. Maximum size is 2MB.');
+      e.target.value = '';
+      return;
+    }
 
     setUploading(true);
     try {
@@ -55,6 +63,7 @@ export default function Dashboard() {
           >
             {uploading ? 'Uploading...' : 'Change profile picture'}
           </button>
+          <p className="text-gray-400 text-xs mt-1">JPEG, PNG, or WebP. Max 2MB.</p>
           <input
             ref={fileInputRef}
             type="file"
