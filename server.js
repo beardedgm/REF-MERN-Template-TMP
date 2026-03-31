@@ -51,6 +51,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Global error handler
 app.use((err, req, res, next) => {
+  // Handle multer file size errors with a clear message
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'File is too large. Maximum size is 2MB.' });
+  }
+
   console.error(err.stack);
 
   const statusCode = err.statusCode || 500;
