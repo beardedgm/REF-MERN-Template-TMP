@@ -34,7 +34,9 @@ render.yaml            — Render.com blueprint (defines both services for deplo
 config/
   db.js                — Mongoose connection with event listeners
   session.js           — express-session + connect-mongo config
-  storage.js           — Google Cloud Storage client + bucket handle
+  storage.js           — Storage provider dispatcher (GCS or R2 via STORAGE_PROVIDER env)
+  storage-gcs.js       — Google Cloud Storage provider
+  storage-r2.js        — Cloudflare R2 provider (S3-compatible)
 models/
   User.js              — email, password (select:false), stripeCustomerId, plan, profilePicture
   RateLimit.js         — MongoDB rate limiting with TTL index
@@ -46,7 +48,7 @@ middleware/
 routes/
   auth.js              — register, login, logout, me, profile-picture
   stripe.js            — webhook + commented checkout/portal stubs
-  upload.js            — general-purpose file upload to GCS
+  upload.js            — general-purpose file upload endpoint
   index.js             — mounts auth + stripe + upload under /api
 utils/
   password.js          — hashPassword/verifyPassword using crypto.scrypt
@@ -93,7 +95,7 @@ client/
 - **Rate limiting:** MongoDB sliding window with TTL indexes
 - **Payments:** Stripe Checkout + webhooks + Customer Portal (stubs in routes/stripe.js, uncomment when needed)
 - **Email:** Resend API with HTML template literals (activate when needed)
-- **File storage:** Google Cloud Storage via `@google-cloud/storage` + multer for multipart parsing
+- **File storage:** Google Cloud Storage or Cloudflare R2 (switchable via `STORAGE_PROVIDER` env var) + multer for multipart parsing
 - **Monitoring:** Sentry (installed, wire when needed), PostHog (add client-side when needed)
 
 ### Frontend
@@ -161,10 +163,11 @@ Schemas live in `shared/schemas/` and are used by both sides:
 
 ### New File Upload Feature
 1. Use the `upload()` middleware from `middleware/` — pass `{ maxSize, allowedTypes, fieldName }` to customize
-2. In your route handler, access `req.file.buffer` and upload to GCS via `bucket.file(name).save(buffer)`
-3. Call `blob.makePublic()` for public URLs
+2. In your route handler, use the storage interface: `const { url } = await storage.upload(filename, buffer, contentType)`
+3. Use `storage.remove(filename)` to delete files, `storage.getPublicUrl(filename)` for URLs
 4. On the frontend, use `api.upload(path, file, { method })` — it handles FormData automatically
 5. See `routes/upload.js` for the general pattern, `routes/auth.js` profile-picture for a model-specific example
+6. Set `STORAGE_PROVIDER` to `gcs` or `r2` in `.env` — routes don't need to change
 
 ### New Zod Schema
 1. Add to `shared/schemas/` — both sides can import it
@@ -193,5 +196,5 @@ Schemas live in `shared/schemas/` and are used by both sides:
 - Resend for transactional email — no SendGrid/Mailgun
 - Cloudflare Turnstile for bot protection — no reCAPTCHA
 - `AppError` for operational errors (known, expected) — global error handler distinguishes from bugs
-- File uploads go to Google Cloud Storage — never store binary files in MongoDB
+- File uploads go to GCS or Cloudflare R2 (set `STORAGE_PROVIDER` env var) — never store binary files in MongoDB
 - Use `upload()` middleware factory for multer config — follows same pattern as `validate()` and `rateLimit()`

@@ -1,10 +1,22 @@
-const { Storage } = require('@google-cloud/storage');
+const provider = process.env.STORAGE_PROVIDER || 'gcs';
 
-const storage = new Storage({
-  projectId: process.env.GCS_PROJECT_ID,
-  keyFilename: process.env.GCS_KEY_FILE,
-});
+let storage;
 
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+switch (provider) {
+  case 'gcs': {
+    const { createGCSStorage } = require('./storage-gcs');
+    storage = createGCSStorage();
+    break;
+  }
+  case 'r2': {
+    const { createR2Storage } = require('./storage-r2');
+    storage = createR2Storage();
+    break;
+  }
+  default:
+    throw new Error(
+      `Unknown STORAGE_PROVIDER "${provider}". Use "gcs" or "r2".`
+    );
+}
 
-module.exports = { storage, bucket };
+module.exports = { storage };
