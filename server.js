@@ -39,7 +39,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/dist')));
 
   // SPA catch-all — any non-API route serves index.html for React Router
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
   });
 } else {
