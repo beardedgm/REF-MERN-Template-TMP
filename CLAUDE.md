@@ -211,3 +211,9 @@ All pages use `React.lazy()` + `Suspense` for code-splitting. This keeps each pa
 - `AppError` for operational errors (known, expected) — global error handler distinguishes from bugs
 - File uploads default to MongoDB GridFS (no extra config). Use GCS or R2 for production scale (set `STORAGE_PROVIDER` env var).
 - Use `upload()` middleware factory for multer config — follows same pattern as `validate()` and `rateLimit()`
+
+## Configuration
+
+A `.claude/settings.json` is present in this repo. It governs permissions, 
+model, and hooks. Do not suggest changes to it mid-session. If a required 
+tool or command is blocked, flag it and wait for instruction.
