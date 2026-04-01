@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/claude-code-settings.json",
+
+  "model": "opus",
+  "effortLevel": "high",
+  "alwaysThinkingEnabled": true,
+  "autoUpdatesChannel": "stable",
+  "cleanupPeriodDays": 14,
+  "spinnerTipsEnabled": false,
+
+  "attribution": {
+    "commits": true,
+    "pullRequests": false
+  },
+
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(sudo *)",
+      "Bash(su *)",
+      "Bash(chmod 777 *)",
+      "Bash(dd *)",
+      "Bash(mkfs *)",
+      "Bash(shutdown *)",
+      "Bash(reboot *)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/.npmrc)",
+      "Read(**/.ssh/**)"
+    ]
+  },
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$CLAUDE_FILE_PATH\"; if echo \"$FILE\" | grep -qE '\\.(js|jsx|ts|tsx|mjs|cjs)$'; then npx eslint --fix \"$FILE\" 2>/dev/null || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$CLAUDE_FILE_PATH\"; if echo \"$FILE\" | grep -qE '\\.(js|jsx|ts|tsx|mjs|cjs)$'; then npx eslint --fix \"$FILE\" 2>/dev/null || true; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
