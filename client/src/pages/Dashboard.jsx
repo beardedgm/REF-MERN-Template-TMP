@@ -1,13 +1,13 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
+import { Camera } from 'lucide-react';
 import { useAuthStore } from '../store';
-import api from '../lib/api';
+import useUploadProfilePicture from '../hooks/useUploadProfilePicture';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
-  const [uploading, setUploading] = useState(false);
+  const upload = useUploadProfilePicture();
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
@@ -20,16 +20,11 @@ export default function Dashboard() {
       return;
     }
 
-    setUploading(true);
     try {
-      const data = await api.upload('/api/auth/profile-picture', file, {
-        method: 'PUT',
-      });
-      setUser(data.user);
+      await upload.mutateAsync(file);
     } catch (err) {
       alert(err.message || 'Upload failed');
     } finally {
-      setUploading(false);
       e.target.value = '';
     }
   };
@@ -58,10 +53,11 @@ export default function Dashboard() {
           <button
             type="button"
             className="mt-2 text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
-            disabled={uploading}
+            disabled={upload.isPending}
             onClick={() => fileInputRef.current?.click()}
           >
-            {uploading ? 'Uploading...' : 'Change profile picture'}
+            <Camera size={14} className="inline mr-1" />
+              {upload.isPending ? 'Uploading...' : 'Change profile picture'}
           </button>
           <p className="text-gray-400 text-xs mt-1">JPEG, PNG, or WebP. Max 2MB.</p>
           <input

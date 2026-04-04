@@ -103,6 +103,7 @@ client/
 - **Framework:** React 19 (Vite)
 - **Routing:** React Router
 - **Styling:** Tailwind CSS (via Vite plugin) + custom CSS as needed
+- **Icons:** Lucide React (`lucide-react`) — tree-shakeable, import individual icons
 - **Server state:** TanStack Query (queries for GET, mutations for POST/PUT/DELETE)
 - **Client state:** Zustand (synced from TanStack Query, used for synchronous reads in UI)
 - **Validation:** Zod (same schemas as backend via `shared/` alias)
