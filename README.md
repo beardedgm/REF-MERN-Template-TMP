@@ -49,6 +49,7 @@ The Vite dev server proxies `/api` requests to `localhost:5000`, so the frontend
 | Routing | React Router | Nested routes with protected wrappers |
 | Styling | Tailwind CSS | Via Vite plugin |
 | Icons | Lucide React | Tree-shakeable, import individual icons |
+| Toasts | react-hot-toast | `toast.success()` / `toast.error()`, never `alert()` |
 | Server state | TanStack Query | Queries for GET, mutations for POST/PUT/DELETE |
 | Client state | Zustand | Thin synchronous cache, synced from TanStack Query |
 | Validation | Zod | Same schemas as backend via import alias |

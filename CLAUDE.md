@@ -105,6 +105,7 @@ client/
 - **Routing:** React Router
 - **Styling:** Tailwind CSS (via Vite plugin) + custom CSS as needed
 - **Icons:** Lucide React (`lucide-react`) — tree-shakeable, import individual icons
+- **Toasts:** react-hot-toast — `<Toaster>` in main.jsx, use `toast.success()` / `toast.error()` (never `alert()`)
 - **Server state:** TanStack Query (queries for GET, mutations for POST/PUT/DELETE)
 - **Client state:** Zustand (synced from TanStack Query, used for synchronous reads in UI)
 - **Validation:** Zod (same schemas as backend via `shared/` alias)
