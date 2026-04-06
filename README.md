@@ -29,7 +29,8 @@ The Vite dev server proxies `/api` requests to `localhost:5000`, so the frontend
 ### Backend
 | Feature | Technology | Notes |
 |---------|-----------|-------|
-| Framework | Express 5 | CommonJS modules |
+| Runtime | Node.js | CommonJS (`require`/`module.exports`) |
+| Framework | Express 5 | Latest major version with breaking changes from v4 |
 | Database | MongoDB via Mongoose | Atlas-ready |
 | Auth | express-session + connect-mongo | HTTP-only cookies, session-based (not JWT) |
 | Password hashing | Node built-in `crypto.scrypt` | No external hashing libraries needed |
@@ -81,7 +82,7 @@ render.yaml                Render.com deploy blueprint (both services)
 config/
   db.js                    Mongoose connection with event listeners
   session.js               express-session + connect-mongo config
-  storage.js               Storage provider dispatcher (GCS or R2)
+  storage.js               Storage provider dispatcher (MongoDB, GCS, or R2 via STORAGE_PROVIDER env)
   storage-mongodb.js       MongoDB GridFS provider (default, no extra config)
   storage-gcs.js           Google Cloud Storage provider
   storage-r2.js            Cloudflare R2 provider (S3-compatible)
@@ -122,6 +123,7 @@ client/
       useLogin.js          login mutation
       useRegister.js       register mutation
       useLogout.js         logout mutation
+      useUploadProfilePicture.js  profile picture upload mutation
     lib/
       api.js               fetch wrapper (credentials: 'include', file uploads)
       queryClient.js       TanStack Query client config

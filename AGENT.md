@@ -74,6 +74,7 @@ client/
       useLogin.js      — login mutation
       useRegister.js   — register mutation
       useLogout.js     — logout mutation
+      useUploadProfilePicture.js — profile picture upload mutation
     lib/
       api.js           — fetch wrapper (credentials: 'include', file upload support)
       queryClient.js   — TanStack Query client config
