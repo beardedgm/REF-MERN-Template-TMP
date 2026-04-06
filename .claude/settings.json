@@ -71,6 +71,17 @@
   },
 
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -q 'package-lock.json'; then echo 'BLOCK: Use npm install instead of editing lock files directly' && exit 2; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write",
