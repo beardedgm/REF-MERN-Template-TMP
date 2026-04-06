@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import toast from 'react-hot-toast';
 import { Camera } from 'lucide-react';
 import { useAuthStore } from '../store';
 import useUploadProfilePicture from '../hooks/useUploadProfilePicture';
@@ -15,15 +16,16 @@ export default function Dashboard() {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert('File is too large. Maximum size is 2MB.');
+      toast.error('File is too large. Maximum size is 2MB.');
       e.target.value = '';
       return;
     }
 
     try {
       await upload.mutateAsync(file);
+      toast.success('Profile picture updated');
     } catch (err) {
-      alert(err.message || 'Upload failed');
+      toast.error(err.message || 'Upload failed');
     } finally {
       e.target.value = '';
     }
